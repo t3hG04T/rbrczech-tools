@@ -12,6 +12,7 @@
 // @include     http://rbr.onlineracing.cz/index.php*
 // @grant       GM_getValue
 // @grant       GM_setValue
+// @grant       GM_xmlhttpRequest
 
 // ==/UserScript==
 
@@ -375,14 +376,13 @@ function convertStageCountries(){
     var targetCountry = 0;
     $.each((stagesDict), function (key, value){
         // console.log("Processing " + value);
-        currCountry = value[stageCountry];
+        currCountry = value[stageCountry]; // Read from the object with 2-digit codes.
         if (currCountry !== undefined){
             targetCountry = countriesDict[currCountry];
             if (targetCountry !== undefined && targetCountry !== 0){
                 value[stageCountry] = targetCountry;
-            } else {currCountry = "ROW";}
-        }
-        else {}
+            } else {currCountry = "ROW";} // Default fallback for non-defined countrynames, Rest-of-World.
+        } else {currCountry = "ROW"};
         // console.log("Results: " + value + " // Country: " + currCountry + "->" + targetCountry);
     });
     console.log("Stage countries processed!");
@@ -425,6 +425,8 @@ function classifyStages(){
                     console.warn("No country entry for: " + stageData[stageCountry]);
                     $(this).addClass("ROW");
                 }
+                // Adding a unique id to every stage to quickly find it by id later.
+                $(this).attr("id", "trid" + stageData[stageID]);
             }else { // No stage data found - applying the default class (ROW)
                 console.warn("No stage data for: " + currStage);
                 $(this).addClass("ROW");
@@ -447,9 +449,18 @@ function createStage( nazwaos , stageid , base , rowstyl , column2 , column3 , c
 		tempTD = document.createElement("td");
 		tempTD.innerHTML = "";
 		if (i === 1 && typeof column2 !== "undefined") { tempTD.innerHTML = column2; }
-		if (i === 2 && typeof column3 !== "undefined") { tempTD.innerHTML = column3; }
-		if (i === 3 && typeof column4 !== "undefined") { tempTD.innerHTML = column4; }
-		if (i === 4 && typeof column5 !== "undefined") { tempTD.innerHTML = column5; }
+		if (i === 2) {
+      tempTD.setAttribute("align", "center"); // 3, 4 and 5th column are aligned to the center of the cell.
+      if (typeof column3 !== "undefined") { tempTD.innerHTML = column3; }; // Fill with data only if data was provided.
+    }
+    if (i === 3) {
+      tempTD.setAttribute("align", "center");
+      if (typeof column4 !== "undefined") { tempTD.innerHTML = column4; };
+    }
+    if (i === 4) {
+      tempTD.setAttribute("align", "center");
+      if (typeof column5 !== "undefined") { tempTD.innerHTML = column5; };
+    }
 		rowTemp.appendChild(tempTD);
 	}
 	return rowTemp;
@@ -511,6 +522,61 @@ function addGTLink(){
             links[i].parentNode.appendChild(gt);
 		}
 	}
+}
+
+// Function getting the missing data for a stage.
+function getStageData(){
+  var jsonFile;
+  var resultBox;
+  var carName;
+  var myTime;
+  var myPlace;
+  var bestTime;
+  var regexCar = /.*<br>\s*([^\n\r]*)/;
+  var regexPlace = /[(](\d*)\//;
+  var stageRow;
+  var carCell;
+  var myTimeCell;
+  var bestTimeCell;
+  var myPlaceCell;
+
+  GM_xmlhttpRequest ({
+        method: "GET",
+        url: "http://rbr.onlineracing.cz/index.php?act=stagerec&stageid=493&classid=3&state=",
+        headers: {
+          "User-Agent": "Mozilla/5.0",    // If not specified, navigator.userAgent will be used.
+          "Accept": "text/xml"            // If not specified, browser defaults will be used.
+        },
+        timeout: 5000,
+        onload: function(response) {
+            jsonFile = response.responseText;
+            // console.log(jsonFile);
+            console.log(response);
+            resultBox = $('span[style="font-size:14px;"]', response.responseText);
+            console.log(resultBox);
+            console.log(resultBox[0].innerText);
+            // console.log(resultBox[0].innerHTML);
+            // Finding the stagerow that we are processing.
+            stageRow = $("#trid493", resultsTable);
+            // Finding the cells with the car name, time and place.
+            carCell = $("td:nth-of-type(2)", stageRow);
+            myTimeCell = $("td:nth-of-type(3)", stageRow);
+            bestTimeCell = $("td:nth-of-type(4)", stageRow);
+            myPlaceCell = $("td:nth-of-type(5)", stageRow);
+            // Finding the car name via regex (string after <br> in the span)
+            carName = regexCar.exec( resultBox[0].innerHTML );
+            // Filling the cell with the car name.
+            // console.log("The car is: " + carName[1]);
+            carCell.append(carName[1]);
+            // Finding the link with the time in the resultbox
+            myTime = $("a", resultBox);
+            //console.log(myTime);
+            myTimeCell.append(myTime);
+            // Finding the place in the ranking via regex.
+            myPlace = regexPlace.exec( resultBox[0].innerHTML );
+            myPlaceCell.append(myPlace[1] + ".");
+        },
+    });
 }
 
 // Changes the default "Records" and "Ranks" links to include class set as favourite. Used also to redraw the link after setting a new favourite class.
@@ -850,6 +916,7 @@ var whereAmI = parseurl("act");
 // If we are NOT on the tournament results page: proceed with finding the results table, preparing the linkbase etc.
 if (whereAmI.indexOf("tourmntres") == -1 && (whereAmI === "urank" || whereAmI == "urec" || whereAmI == "stagerec" || whereAmI == "stagerank" || whereAmI == "tstats")) {
     var resultsTable = findResultsTableJQ();
+    getStageData();
     addHeadAndBody();
     convertStageCountries();
     var countriesHidden = JSON.parse(GM_getValue("countriesHiddenSaved", "{}"));
