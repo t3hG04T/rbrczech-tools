@@ -525,39 +525,33 @@ function addGTLink(){
 }
 
 // Function getting the missing data for a stage.
-function getStageData(){
-  var jsonFile;
+function getStageData( idToCheck ){
   var resultBox;
-  var carName;
-  var myTime;
-  var myPlace;
-  var bestTime;
+  var carName, myTime, myPlace, bestTime;
   var regexCar = /.*<br>\s*([^\n\r]*)/;
   var regexPlace = /[(](\d*)\//;
   var stageRow;
-  var carCell;
-  var myTimeCell;
-  var bestTimeCell;
-  var myPlaceCell;
+  var carCell, myTimeCell, bestTimeCell, myPlaceCell;
+  var resultsTableXHR, bestTimeRow;
+  var selectedClass = $("#classid").val(); // Read the value of currently selected class.
+  var selectedState = $("#state").val(); // Read the value of currently selected country.
+  if (selectedState === undefined) {selectedState = ""}; // If state is undefined - replace it with an empty string (for safety).
 
   GM_xmlhttpRequest ({
         method: "GET",
-        url: "http://rbr.onlineracing.cz/index.php?act=stagerec&stageid=493&classid=3&state=",
+        url: "http://rbr.onlineracing.cz/index.php?act=stagerec&stageid=" + idToCheck + "&classid=" + selectedClass + "&state=" + selectedState,
         headers: {
           "User-Agent": "Mozilla/5.0",    // If not specified, navigator.userAgent will be used.
           "Accept": "text/xml"            // If not specified, browser defaults will be used.
         },
         timeout: 5000,
-        onload: function(response) {
-            jsonFile = response.responseText;
-            // console.log(jsonFile);
-            console.log(response);
+        onload: function(response) { // TODO: Check when certain values are undefined (not logged in) and take care of those cases.
+            //console.log("http://rbr.onlineracing.cz/index.php?act=stagerec&stageid=" + idToCheck + "&classid=" + selectedClass + "&state=");
+            //console.log(response);
             resultBox = $('span[style="font-size:14px;"]', response.responseText);
-            console.log(resultBox);
-            console.log(resultBox[0].innerText);
-            // console.log(resultBox[0].innerHTML);
+            // console.log(resultBox);
             // Finding the stagerow that we are processing.
-            stageRow = $("#trid493", resultsTable);
+            stageRow = $("#trid"+idToCheck, resultsTable); // Finding the row.
             // Finding the cells with the car name, time and place.
             carCell = $("td:nth-of-type(2)", stageRow);
             myTimeCell = $("td:nth-of-type(3)", stageRow);
@@ -575,6 +569,14 @@ function getStageData(){
             // Finding the place in the ranking via regex.
             myPlace = regexPlace.exec( resultBox[0].innerHTML );
             myPlaceCell.append(myPlace[1] + ".");
+            // Finding the row with the record time + cell with the time (link) itself.
+            resultsTableXHR = $(resultBox[0]).nextUntil("table").next()[1]; // Results table, beginning with the enclosing table.
+            // Cannot be done simpler, because the table we're looking for does not have any unique attributes.
+            resultsTableXHR = $('table[width="100%"]', resultsTableXHR); // Finding the correct table.
+            bestTimeRow = $("tr:nth-of-type(2)", resultsTableXHR); // Second row of the table is the one we are looking for.
+            //console.log(resultsTableXHR);
+            console.log(bestTimeRow);
+            bestTimeCell.append($("td:nth-of-type(4)", bestTimeRow)[0].innerHTML); // Appending the insides of the 4th column to the cell.
         },
     });
 }
@@ -916,9 +918,12 @@ var whereAmI = parseurl("act");
 // If we are NOT on the tournament results page: proceed with finding the results table, preparing the linkbase etc.
 if (whereAmI.indexOf("tourmntres") == -1 && (whereAmI === "urank" || whereAmI == "urec" || whereAmI == "stagerec" || whereAmI == "stagerank" || whereAmI == "tstats")) {
     var resultsTable = findResultsTableJQ();
-    getStageData();
     addHeadAndBody();
     convertStageCountries();
+    getStageData(493); // TODO: cleanup the hardcoded entries.
+    getStageData(495);
+    getStageData(497);
+    getStageData(491);
     var countriesHidden = JSON.parse(GM_getValue("countriesHiddenSaved", "{}"));
     console.log(typeof(countriesHidden));
     console.log(countriesHidden);
