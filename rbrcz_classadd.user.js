@@ -17,8 +17,7 @@
 // ==/UserScript==
 
 // Populating a handy faux-dictionary with classes and their correct ids (to avoid messing up and hardcoding).
-var classesDict = {
-    "WRC legacy": 1,
+var classesDict = { "WRC legacy": 1,
     "N4" : 3,
     "S2000" : 13,
     "S1600" : 2,
@@ -294,6 +293,9 @@ var stagesDict = [[10,"Kaihuavaara","Finland","Snow","6.1 km","Yes","Open"],
 // A couple of helpful vars to make traversing the stage data easier.
 var stageID = 0, stageName = 1, stageCountry = 2, stageSurface = 3, stageDistance = 4, stageIsShakedownable = 5, stageIsRestricted = 6;
 
+// An array "with holes" of stages with the information wheter or not they are on the page (undefined -> not, "true" -> yes)
+var isStageOnThePage = [];
+
 // Reading the favourite class from local storage (if doesn't exist - 0 to know it's not there).
 var favClass = GM_getValue("favClass", 0);
 
@@ -427,6 +429,8 @@ function classifyStages(){
                 }
                 // Adding a unique id to every stage to quickly find it by id later.
                 $(this).attr("id", "trid" + stageData[stageID]);
+                isStageOnThePage[stageID] = "true"; // Adding the info about the stage being on the page to the array. TODO: Find out why its not applying.
+                console.log(isStageOnThePage);
             }else { // No stage data found - applying the default class (ROW)
                 console.warn("No stage data for: " + currStage);
                 $(this).addClass("ROW");
@@ -485,7 +489,8 @@ function createSub ( subtitle , country, flag ) {
         console.log(JSON.stringify(countriesHidden));
     });
 	var thSub = document.createElement("th");
-	thSub.setAttribute("colspan", "5");
+	if (whereAmI === "tstats") { thSub.setAttribute("colspan", "4"); // On global stats page the table has one less column.
+} else {thSub.setAttribute("colspan", "5");} // Merge 5 columns on users stat page.
 	thSub.innerHTML = subtitle;
 	if (flag !== undefined) {
 		var flagIcon = document.createElement("IMG");
@@ -525,7 +530,7 @@ function addGTLink(){
 }
 
 // Function getting the missing data for a stage.
-function getStageData( idToCheck ){
+function getStageData( idToCheck ){ // TODO: Deal with the global rankings (not user's). -> different table layout.
   var resultBox;
   var carName, myTime, myPlace, bestTime;
   var regexCar = /.*<br>\s*([^\n\r]*)/;
@@ -548,7 +553,7 @@ function getStageData( idToCheck ){
         onload: function(response) { // TODO: Check when certain values are undefined (not logged in) and take care of those cases.
             //console.log("http://rbr.onlineracing.cz/index.php?act=stagerec&stageid=" + idToCheck + "&classid=" + selectedClass + "&state=");
             //console.log(response);
-            resultBox = $('span[style="font-size:14px;"]', response.responseText);
+            resultBox = $('span[style="font-size:14px;"]', response.responseText); // TODO: deal with the case, when no best time present.
             // console.log(resultBox);
             // Finding the stagerow that we are processing.
             stageRow = $("#trid"+idToCheck, resultsTable); // Finding the row.
@@ -571,6 +576,7 @@ function getStageData( idToCheck ){
             myPlaceCell.append(myPlace[1] + ".");
             // Finding the row with the record time + cell with the time (link) itself.
             resultsTableXHR = $(resultBox[0]).nextUntil("table").next()[1]; // Results table, beginning with the enclosing table.
+            // TODO: search from an id (select) instead of the resultbox to avoid special case for logged out user.
             // Cannot be done simpler, because the table we're looking for does not have any unique attributes.
             resultsTableXHR = $('table[width="100%"]', resultsTableXHR); // Finding the correct table.
             bestTimeRow = $("tr:nth-of-type(2)", resultsTableXHR); // Second row of the table is the one we are looking for.
@@ -654,7 +660,7 @@ function appendClasses(){
 
 // Function adding new rows with Montekland stages (they are ommited from the "Records" page by default). Uses JQUERY
 function addMontekland(){ // records are ignored now -- Separate function, because it has to be added both to the records and ranks.
-    console.log("Adding Montekland...");
+    console.log("Adding Montekland..."); // TODO: instead of hardcoding Montek incorporate it into automated function filling up the missing stages.
     resultsTable.append(createStage("Sourkov", "490", linkBase, "row2"));
 	  resultsTable.append(createStage("Lernovec", "491", linkBase, "row3"));
 	  resultsTable.append(createStage("Uzkotin", "492", linkBase, "row2"));
@@ -901,6 +907,7 @@ function addFavouriteButtons(){
 
 // ************************************ END OF FUNCTIONS ************************************
 // Processing the document itself
+// TODO: cleanup this section and organize it better.
 addStyling(); // Adding special styling
 console.log("Favourite class is: " + favClass + " // " + typeof(favClass));
 replaceDefaultRecordLinks();
@@ -920,10 +927,16 @@ if (whereAmI.indexOf("tourmntres") == -1 && (whereAmI === "urank" || whereAmI ==
     var resultsTable = findResultsTableJQ();
     addHeadAndBody();
     convertStageCountries();
-    getStageData(493); // TODO: cleanup the hardcoded entries.
+    getStageData(493); // TODO: cleanup the hardcoded entries after adding the automated function.
     getStageData(495);
     getStageData(497);
     getStageData(491);
+    getStageData(492);
+    getStageData(494);
+    getStageData(496);
+    getStageData(498);
+    getStageData(499);
+    getStageData(490);
     var countriesHidden = JSON.parse(GM_getValue("countriesHiddenSaved", "{}"));
     console.log(typeof(countriesHidden));
     console.log(countriesHidden);
