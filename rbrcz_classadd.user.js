@@ -456,7 +456,7 @@ function addMissingStages(){
         resultsTable.append(createStage(selectedStage[stageName], selectedStage[stageID], linkBase, "row2")); // Adding the row with the missing stage info + links.
         getStageData(selectedStage[stageID]); // Filling with data. TODO: add a switch to turn off filling with data.
       } else {
-        console.log("Stage "+ selectedStage[stageName] +" already exists. Skipping!");
+        // console.log("Stage "+ selectedStage[stageName] +" already exists. Skipping!");
       }
     }
   }
@@ -580,7 +580,27 @@ function getStageData( idToCheck ){ // TODO: Deal with the global rankings (not 
             //console.log("http://rbr.onlineracing.cz/index.php?act=stagerec&stageid=" + idToCheck + "&classid=" + selectedClass + "&state=");
             //console.log(response);
             resultBox = $('span[style="font-size:14px;"]', response.responseText); // TODO: deal with the case, when no best time present.
-            // console.log(resultBox);
+            console.log(resultBox);
+            if (resultBox.length === 0) { // If user is not logged in there is no data to traverse.
+              // console.log("User not logged in! ");
+              myResult.Car = "";
+              myResult.Time = "--:--:--";
+              myResult.Place = "---";
+            } else { // Fill out the "My result" data only if user is logged in.
+              // Finding the car name via regex (string after <br> in the span)
+              myResult.Car = regexCar.exec( resultBox[0].innerHTML );
+              // Filling the cell with the car name.
+              if (myResult.Car !== null) { // Add car only if a record is present. Otherwise -> skip this and the time+place steps.
+                carCell.append(myResult.Car[1]);
+                // Finding the link with the time in the resultbox
+                myResult.Time = $("a", resultBox);
+                // Finding the place in the ranking via regex.
+                myResult.Place = regexPlace.exec( resultBox[0].innerHTML)[1] + ".";
+              } else {
+                myResult.Time = "--:--:--"
+                myResult.Place = "---"
+              }
+            }
             // Finding the stagerow that we are processing.
             stageRow = $("#trid"+idToCheck, resultsTable); // Finding the row.
             // Finding the cells with the car name, time and place.
@@ -588,16 +608,9 @@ function getStageData( idToCheck ){ // TODO: Deal with the global rankings (not 
             myTimeCell = $("td:nth-of-type(3)", stageRow);
             bestTimeCell = $("td:nth-of-type(4)", stageRow);
             myPlaceCell = $("td:nth-of-type(5)", stageRow);
-            // Finding the car name via regex (string after <br> in the span)
-            myResult.Car = regexCar.exec( resultBox[0].innerHTML );
-            // Filling the cell with the car name.
-            carCell.append(myResult.Car[1]);
-            // Finding the link with the time in the resultbox
-            myResult.Time = $("a", resultBox);
+
             myTimeCell.append(myResult.Time);
-            // Finding the place in the ranking via regex.
-            myResult.Place = regexPlace.exec( resultBox[0].innerHTML );
-            myPlaceCell.append(myResult.Place[1] + ".");
+            myPlaceCell.append(myResult.Place);
             // Finding the row with the record time + cell with the time (link) itself.
             resultsTableXHR = $(resultBox[0]).nextUntil("table").next()[1]; // Results table, beginning with the enclosing table.
             // TODO: search from an id (select) instead of the resultbox to avoid special case for logged out user.
@@ -608,6 +621,7 @@ function getStageData( idToCheck ){ // TODO: Deal with the global rankings (not 
             console.log(bestTimeRow);
             // Adding the world's best time to the myResult object.
             myResult.BestTime = $("td:nth-of-type(4)", bestTimeRow).children();
+            if (myResult.BestTime.length === 0){ myResult.BestTime = "--:--:--"} // If no best time set - fill the object with the "no time" text.
             console.log(myResult);
             bestTimeCell.append(myResult.BestTime); // Appending the insides of the 4th column to the cell.
         },
