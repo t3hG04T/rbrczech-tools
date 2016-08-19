@@ -580,7 +580,6 @@ function getStageData( idToCheck ){ // TODO: Deal with the global rankings (not 
             //console.log("http://rbr.onlineracing.cz/index.php?act=stagerec&stageid=" + idToCheck + "&classid=" + selectedClass + "&state=");
             //console.log(response);
             resultBox = $('span[style="font-size:14px;"]', response.responseText); // TODO: deal with the case, when no best time present.
-            console.log(resultBox);
             if (resultBox.length === 0) { // If user is not logged in there is no data to traverse.
               // console.log("User not logged in! ");
               myResult.Car = "";
@@ -588,17 +587,17 @@ function getStageData( idToCheck ){ // TODO: Deal with the global rankings (not 
               myResult.Place = "---";
             } else { // Fill out the "My result" data only if user is logged in.
               // Finding the car name via regex (string after <br> in the span)
-              myResult.Car = regexCar.exec( resultBox[0].innerHTML );
-              // Filling the cell with the car name.
-              if (myResult.Car !== null) { // Add car only if a record is present. Otherwise -> skip this and the time+place steps.
-                carCell.append(myResult.Car[1]);
+              myResult.CarFull = regexCar.exec( resultBox[0].innerHTML ); // Holding full regex results in an object.
+              if (myResult.CarFull !== null) { // Add car only if a record is present. Otherwise -> skip this and the time+place steps.
                 // Finding the link with the time in the resultbox
-                myResult.Time = $("a", resultBox);
+                myResult.Car = myResult.CarFull[1]; // Easily outputable car name (plaintext).
+                myResult.Time = $("a", resultBox); // Easily appendable link with best time.
                 // Finding the place in the ranking via regex.
                 myResult.Place = regexPlace.exec( resultBox[0].innerHTML)[1] + ".";
               } else {
-                myResult.Time = "--:--:--"
-                myResult.Place = "---"
+                myResult.Time = "--:--:--";
+                myResult.Place = "---";
+                myResult.Car = "";
               }
             }
             // Finding the stagerow that we are processing.
@@ -611,6 +610,7 @@ function getStageData( idToCheck ){ // TODO: Deal with the global rankings (not 
 
             myTimeCell.append(myResult.Time);
             myPlaceCell.append(myResult.Place);
+            carCell.append(myResult.Car);
             // Finding the row with the record time + cell with the time (link) itself.
             resultsTableXHR = $(resultBox[0]).nextUntil("table").next()[1]; // Results table, beginning with the enclosing table.
             // TODO: search from an id (select) instead of the resultbox to avoid special case for logged out user.
