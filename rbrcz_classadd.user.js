@@ -68,7 +68,8 @@ var countriesDict = { "Finland" : "FI",
                      "Slovenia" : "SI",
                      "Switzerland" : "CH",
                      "Swiss" : "CH",
-                     "Ukraine" : "UA"
+                     "Ukraine" : "UA",
+                     "Test":"Test"
 };
 
 // An array of helpful data related to sorting and subtitling the stages and countries.
@@ -374,8 +375,8 @@ function findStage(name){
 // Function changing the contents of the stages table (Country converted to the 2digit country codes according to the dictionary
 function convertStageCountries(){
     console.log("Processing stage countries (dict)...");
-    var currCountry = 0;
-    var targetCountry = 0;
+    var currCountry = 0; // Current, processed country.
+    var targetCountry = 0; // Our target, a two-digit code.
     $.each((stagesDict), function (key, value){
         // console.log("Processing " + value);
         currCountry = value[stageCountry]; // Read from the object with 2-digit codes.
@@ -383,8 +384,8 @@ function convertStageCountries(){
             targetCountry = countriesDict[currCountry];
             if (targetCountry !== undefined && targetCountry !== 0){
                 value[stageCountry] = targetCountry;
-            } else {currCountry = "ROW";} // Default fallback for non-defined countrynames, Rest-of-World.
-        } else {currCountry = "ROW"};
+            } else {value[stageCountry] = "ROW";} // Default fallback for non-defined countrynames, Rest-of-World.
+        } else {value[stageCountry] = "ROW"};
         // console.log("Results: " + value + " // Country: " + currCountry + "->" + targetCountry);
     });
     console.log("Stage countries processed!");
@@ -407,10 +408,11 @@ function sortStagesDict(){
 }
 
 // Apllying correct classes (country codes) to all rows of the table + removing empty rows (containing blank names).
-function classifyStages(){
+function classifyStages(stagesToClassify){
     var currStage = 0;
     var stageData = 0;
-    $.each($("tr[class=row2], tr[class=row3]",resultsTable), function (key, value) {
+    console.log(stagesToClassify);
+    $.each($(stagesToClassify), function (key, value) {
         currStage = $("td:first-of-type", this).text(); // Picking the name of the stage
         if (currStage === ""){ // Checking wheter or not the name is blank to avoid unnecessary processing.
             $(this).remove();
@@ -429,14 +431,36 @@ function classifyStages(){
                 }
                 // Adding a unique id to every stage to quickly find it by id later.
                 $(this).attr("id", "trid" + stageData[stageID]);
-                isStageOnThePage[stageID] = "true"; // Adding the info about the stage being on the page to the array. TODO: Find out why its not applying.
-                console.log(isStageOnThePage);
+                isStageOnThePage[stageData[stageID]] = "true"; // Adding the info about the stage being on the page to the array. TODO: Find out why its not applying.
+
             }else { // No stage data found - applying the default class (ROW)
                 console.warn("No stage data for: " + currStage);
                 $(this).addClass("ROW");
             }
         }
     });
+    // Diagnostic - pring the list of stages visible on the page.
+    console.log(isStageOnThePage);
+}
+
+// Function searching for and adding missing stages.
+function addMissingStages(){
+  var selectedStage;
+  console.log("Adding missing stages...");
+  for (var index = 0; index < stagesDict.length; index++){
+    selectedStage = stagesDict[index];
+    if (selectedStage[stageCountry] !== "Test"){ // Not adding the "test" stages.
+      if ($("#trid"+selectedStage[stageID]).length === 0){
+        console.log("Found missing stage. Adding info.");
+        console.log(selectedStage);
+        resultsTable.append(createStage(selectedStage[stageName], selectedStage[stageID], linkBase, "row2")); // Adding the row with the missing stage info + links.
+        getStageData(selectedStage[stageID]); // Filling with data. TODO: add a switch to turn off filling with data.
+      } else {
+        console.log("Stage "+ selectedStage[stageName] +" already exists. Skipping!");
+      }
+    }
+  }
+  console.log("Finished adding missing stages.");
 }
 
 // Function creatin a row for the stage in the stages table. Takes innerHTML for each column.
@@ -530,9 +554,11 @@ function addGTLink(){
 }
 
 // Function getting the missing data for a stage.
+// TODO: rewrite the function so that it returns the result instead of writing to global var.
 function getStageData( idToCheck ){ // TODO: Deal with the global rankings (not user's). -> different table layout.
   var resultBox;
-  var carName, myTime, myPlace, bestTime;
+  var myResult = {}; // Object with "my result", to be populated with data.
+  var bestTime;
   var regexCar = /.*<br>\s*([^\n\r]*)/;
   var regexPlace = /[(](\d*)\//;
   var stageRow;
@@ -563,17 +589,15 @@ function getStageData( idToCheck ){ // TODO: Deal with the global rankings (not 
             bestTimeCell = $("td:nth-of-type(4)", stageRow);
             myPlaceCell = $("td:nth-of-type(5)", stageRow);
             // Finding the car name via regex (string after <br> in the span)
-            carName = regexCar.exec( resultBox[0].innerHTML );
+            myResult.Car = regexCar.exec( resultBox[0].innerHTML );
             // Filling the cell with the car name.
-            // console.log("The car is: " + carName[1]);
-            carCell.append(carName[1]);
+            carCell.append(myResult.Car[1]);
             // Finding the link with the time in the resultbox
-            myTime = $("a", resultBox);
-            //console.log(myTime);
-            myTimeCell.append(myTime);
+            myResult.Time = $("a", resultBox);
+            myTimeCell.append(myResult.Time);
             // Finding the place in the ranking via regex.
-            myPlace = regexPlace.exec( resultBox[0].innerHTML );
-            myPlaceCell.append(myPlace[1] + ".");
+            myResult.Place = regexPlace.exec( resultBox[0].innerHTML );
+            myPlaceCell.append(myResult.Place[1] + ".");
             // Finding the row with the record time + cell with the time (link) itself.
             resultsTableXHR = $(resultBox[0]).nextUntil("table").next()[1]; // Results table, beginning with the enclosing table.
             // TODO: search from an id (select) instead of the resultbox to avoid special case for logged out user.
@@ -582,7 +606,10 @@ function getStageData( idToCheck ){ // TODO: Deal with the global rankings (not 
             bestTimeRow = $("tr:nth-of-type(2)", resultsTableXHR); // Second row of the table is the one we are looking for.
             //console.log(resultsTableXHR);
             console.log(bestTimeRow);
-            bestTimeCell.append($("td:nth-of-type(4)", bestTimeRow)[0].innerHTML); // Appending the insides of the 4th column to the cell.
+            // Adding the world's best time to the myResult object.
+            myResult.BestTime = $("td:nth-of-type(4)", bestTimeRow).children();
+            console.log(myResult);
+            bestTimeCell.append(myResult.BestTime); // Appending the insides of the 4th column to the cell.
         },
     });
 }
@@ -656,22 +683,6 @@ function appendClasses(){
             }
         }
     }
-}
-
-// Function adding new rows with Montekland stages (they are ommited from the "Records" page by default). Uses JQUERY
-function addMontekland(){ // records are ignored now -- Separate function, because it has to be added both to the records and ranks.
-    console.log("Adding Montekland..."); // TODO: instead of hardcoding Montek incorporate it into automated function filling up the missing stages.
-    resultsTable.append(createStage("Sourkov", "490", linkBase, "row2"));
-	  resultsTable.append(createStage("Lernovec", "491", linkBase, "row3"));
-	  resultsTable.append(createStage("Uzkotin", "492", linkBase, "row2"));
-    resultsTable.append(createStage("Hroudovany", "493", linkBase, "row3"));
-	  resultsTable.append(createStage("Snekovice", "494", linkBase, "row2"));
-	  resultsTable.append(createStage("Lernovec II", "495", linkBase, "row3"));
-	  resultsTable.append(createStage("Uzkotin II", "496", linkBase, "row2"));
-	  resultsTable.append(createStage("Hroudovany II", "497", linkBase, "row3"));
-	  resultsTable.append(createStage("Snekovice II", "498", linkBase, "row2"));
-	  resultsTable.append(createStage("Sourkov 2", "499", linkBase, "row3"));
-    console.log("... Montekland added!");
 }
 
 // Function sorting the stages according to the country code
@@ -927,16 +938,6 @@ if (whereAmI.indexOf("tourmntres") == -1 && (whereAmI === "urank" || whereAmI ==
     var resultsTable = findResultsTableJQ();
     addHeadAndBody();
     convertStageCountries();
-    getStageData(493); // TODO: cleanup the hardcoded entries after adding the automated function.
-    getStageData(495);
-    getStageData(497);
-    getStageData(491);
-    getStageData(492);
-    getStageData(494);
-    getStageData(496);
-    getStageData(498);
-    getStageData(499);
-    getStageData(490);
     var countriesHidden = JSON.parse(GM_getValue("countriesHiddenSaved", "{}"));
     console.log(typeof(countriesHidden));
     console.log(countriesHidden);
@@ -951,13 +952,14 @@ switch(whereAmI) {
 		}
 	case "urec":
          // Find the correct table - globally.
-		addMontekland(); // Add Montek first, because it has to be classified etc.
-        classifyStages(); // Classify all the rows with country codes
-        sortStagesByCountry();
-        addSubtitles();
+    classifyStages($("tr[class=row2], tr[class=row3]",resultsTable).not("[id^=trid]")); // Classify all the rows with country codes and track ids
+    addMissingStages();
+    classifyStages($("tr[class=row2], tr[class=row3]",resultsTable).not("[id^=trid]")); // Classify again, this time the added stages.
+    sortStagesByCountry();
+    addSubtitles();
 		reClassifyRows();
-        reHideStageRows();
-        addHiderButtons();
+    reHideStageRows();
+    addHiderButtons();
 		break;
 	case "stagerec":
 	case "stagerank":
