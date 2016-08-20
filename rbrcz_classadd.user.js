@@ -629,20 +629,21 @@ function getStageData( idToCheck ){ // TODO: Deal with the global rankings (not 
             myPlaceCell.append(myResult.Place);
             carCell.append(myResult.Car);
             // Finding the row with the record time + cell with the time (link) itself.
-            resultsTableXHR = $(resultBox[0]).nextUntil("table").next()[1]; // Results table, beginning with the enclosing table.
-            // TODO: search from an id (select) instead of the resultbox to avoid special case for logged out user.
+            resultsTableXHR = $("#state", response.responseText).nextUntil("table").next(); // Results table, beginning with the enclosing table.
+            console.log(resultsTableXHR);
             // Cannot be done simpler, because the table we're looking for does not have any unique attributes.
             resultsTableXHR = $('table[width="100%"]', resultsTableXHR); // Finding the correct table.
+            console.log(resultsTableXHR);
             bestTimeRow = $("tr:nth-of-type(2)", resultsTableXHR); // Second row of the table is the one we are looking for.
             //console.log(resultsTableXHR);
             console.log(bestTimeRow);
             // Adding the world's best time to the myResult object.
             myResult.BestTime = $("td:nth-of-type(4)", bestTimeRow).children();
-            if (myResult.BestTime.length === 0){ myResult.BestTime = "--:--:--"} // If no best time set - fill the object with the "no time" text.
+            if (myResult.BestTime.length === 0){ myResult.BestTime = "--:--:--"; console.log(resultsTableXHR);} // If no best time set - fill the object with the "no time" text.
             console.log(myResult);
             bestTimeCell.append(myResult.BestTime); // Appending the insides of the 4th column to the cell.
             progressBar.increment(); //Increment the count of coompleted requests.
-        },
+        }
     });
 }
 
