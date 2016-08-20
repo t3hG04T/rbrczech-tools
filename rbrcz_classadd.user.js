@@ -572,13 +572,12 @@ function addGTLink(){
 
 // Function getting the missing data for a stage.
 // TODO: rewrite the function so that it returns the result instead of writing to global var.
-function getStageData( idToCheck ){ // TODO: Deal with the global rankings (not user's). -> different table layout.
-  var resultBox;
+// TODO: Deal with the global rankings (not user's). -> different table layout.
+function getStageData( idToCheck ){
   var myResult = {}; // Object with "my result", to be populated with data.
   var bestTime;
   var regexCar = /.*<br>\s*([^\n\r]*)/;
   var regexPlace = /[(](\d*)\//;
-  var stageRow;
   var carCell, myTimeCell, bestTimeCell, myPlaceCell;
   var resultsTableXHR, bestTimeRow;
   var selectedClass = $("#classid").val(); // Read the value of currently selected class.
@@ -586,65 +585,84 @@ function getStageData( idToCheck ){ // TODO: Deal with the global rankings (not 
   if (selectedState === undefined) {selectedState = ""}; // If state is undefined - replace it with an empty string (for safety).
 
   GM_xmlhttpRequest ({
-        method: "GET",
-        url: "http://rbr.onlineracing.cz/index.php?act=stagerec&stageid=" + idToCheck + "&classid=" + selectedClass + "&state=" + selectedState,
-        headers: {
-          "User-Agent": "Mozilla/5.0",    // If not specified, navigator.userAgent will be used.
-          "Accept": "text/xml"            // If not specified, browser defaults will be used.
-        },
-        timeout: 5000,
-        onload: function(response) { // TODO: Check when certain values are undefined (not logged in) and take care of those cases.
-            //console.log("http://rbr.onlineracing.cz/index.php?act=stagerec&stageid=" + idToCheck + "&classid=" + selectedClass + "&state=");
-            //console.log(response);
-            resultBox = $('span[style="font-size:14px;"]', response.responseText); // TODO: deal with the case, when no best time present.
-            if (resultBox.length === 0) { // If user is not logged in there is no data to traverse.
-              // console.log("User not logged in! ");
-              myResult.Car = "";
-              myResult.Time = "--:--:--";
-              myResult.Place = "---";
-            } else { // Fill out the "My result" data only if user is logged in.
-              // Finding the car name via regex (string after <br> in the span)
-              myResult.CarFull = regexCar.exec( resultBox[0].innerHTML ); // Holding full regex results in an object.
-              if (myResult.CarFull !== null) { // Add car only if a record is present. Otherwise -> skip this and the time+place steps.
-                // Finding the link with the time in the resultbox
-                myResult.Car = myResult.CarFull[1]; // Easily outputable car name (plaintext).
-                myResult.Time = $("a", resultBox); // Easily appendable link with best time.
-                // Finding the place in the ranking via regex.
-                myResult.Place = regexPlace.exec( resultBox[0].innerHTML)[1] + ".";
-              } else {
-                myResult.Time = "--:--:--";
-                myResult.Place = "---";
-                myResult.Car = "";
-              }
-            }
-            // Finding the stagerow that we are processing.
-            stageRow = $("#trid"+idToCheck, resultsTable); // Finding the row.
-            // Finding the cells with the car name, time and place.
-            carCell = $("td:nth-of-type(2)", stageRow);
-            myTimeCell = $("td:nth-of-type(3)", stageRow);
-            bestTimeCell = $("td:nth-of-type(4)", stageRow);
-            myPlaceCell = $("td:nth-of-type(5)", stageRow);
-
-            myTimeCell.append(myResult.Time);
-            myPlaceCell.append(myResult.Place);
-            carCell.append(myResult.Car);
-            // Finding the row with the record time + cell with the time (link) itself.
-            resultsTableXHR = $("#state", response.responseText).nextUntil("table").next(); // Results table, beginning with the enclosing table.
-            console.log(resultsTableXHR);
-            // Cannot be done simpler, because the table we're looking for does not have any unique attributes.
-            resultsTableXHR = $('table[width="100%"]', resultsTableXHR); // Finding the correct table.
-            console.log(resultsTableXHR);
-            bestTimeRow = $("tr:nth-of-type(2)", resultsTableXHR); // Second row of the table is the one we are looking for.
-            //console.log(resultsTableXHR);
-            console.log(bestTimeRow);
-            // Adding the world's best time to the myResult object.
-            myResult.BestTime = $("td:nth-of-type(4)", bestTimeRow).children();
-            if (myResult.BestTime.length === 0){ myResult.BestTime = "--:--:--"; console.log(resultsTableXHR);} // If no best time set - fill the object with the "no time" text.
-            console.log(myResult);
-            bestTimeCell.append(myResult.BestTime); // Appending the insides of the 4th column to the cell.
-            progressBar.increment(); //Increment the count of coompleted requests.
+    method: "GET",
+    url: "http://rbr.onlineracing.cz/index.php?act=stagerec&stageid=" + idToCheck + "&classid=" + selectedClass + "&state=" + selectedState,
+    headers: {
+      "User-Agent": "Mozilla/5.0",    // If not specified, navigator.userAgent will be used.
+      "Accept": "text/xml"            // If not specified, browser defaults will be used.
+    },
+    timeout: 5000,
+    onload: function(response) {
+      var stageRow = {};
+      // Finding the stagerow that we are processing.
+      stageRow.full = $("#trid"+idToCheck, resultsTable); // Finding the row.
+      // Handling the case of world rankings (not user's).
+      if (whereAmI === "tstats") {
+        // Finding the target cells with the car name, time and place.
+        stageRow.car = $("td:nth-of-type(3)", stageRow.full);
+        stageRow.myTime = null; // No place for user's time.
+        stageRow.myPlace = null;
+        stageRow.bestDriver = $("td:nth-of-type(2)", stageRow.full);
+        stageRow.bestTime = $("td:nth-of-type(4)", stageRow.full);
+      } else {
+        // User rankings (non-tstats)
+        // Finding the target cells with the car name, time and place.
+        stageRow.car = $("td:nth-of-type(2)", stageRow.full);
+        stageRow.myTime = $("td:nth-of-type(3)", stageRow.full);
+        stageRow.bestTime = $("td:nth-of-type(4)", stageRow.full);
+        stageRow.myPlace = $("td:nth-of-type(5)", stageRow.full);
+        stageRow.bestDriver = null; // No place for the best driver on the page.
+        // Finding the box with users results.
+        var resultBox;
+        resultBox = $('span[style="font-size:14px;"]', response.responseText); // Found by unique combination of span attributes.
+        if (resultBox.length === 0) { // If user is not logged in there is no data to traverse.
+          // console.log("User not logged in! ");
+          myResult.car = "";
+          myResult.myTime = "--:--:--";
+          myResult.place = "---";
+        } else { // Fill out the "My result" data only if user is logged in.
+        // Finding the car name via regex (string after <br> in the span)
+        myResult.carFull = regexCar.exec( resultBox[0].innerHTML ); // Holding full regex results in an object.
+        if (myResult.carFull !== null) { // Add car only if a record is present. Otherwise -> skip this and the time+place steps.
+          // Finding the link with the time in the resultbox
+          myResult.car = myResult.carFull[1]; // Easily outputable car name (plaintext).
+          myResult.myTime = $("a", resultBox); // Easily appendable link with best time.
+          // Finding the place in the ranking via regex.
+          myResult.place = regexPlace.exec( resultBox[0].innerHTML)[1] + ".";
+        } else {
+          myResult.myTime = "--:--:--";
+          myResult.place = "---";
+          myResult.car = "";
         }
-    });
+      }
+    }
+    // Finding the row with the record time + cell with the time (link) itself.
+    resultsTableXHR = $("#state", response.responseText).nextUntil("table").next(); // Results table, beginning with the enclosing table.
+    // Cannot be done simpler, because the table we're looking for does not have any unique attributes.
+    resultsTableXHR = $('table[width="100%"]', resultsTableXHR); // Finding the correct table inside it's parent.
+    bestTimeRow = $("tr:nth-of-type(2)", resultsTableXHR); // Second row of the table is the one we are looking for.
+    // Adding the world's best time to the myResult object.
+    myResult.bestDriver = $("td:nth-of-type(2)", bestTimeRow).children();
+    myResult.bestCar = $("td:nth-of-type(3)", bestTimeRow).html(); // Not children, because the car is in plaintext.
+    myResult.bestTime = $("td:nth-of-type(4)", bestTimeRow).children();
+    // If no best time set - fill the object with the "no time" text. The rest of the fields will just remain empty.
+    if (myResult.bestTime.length === 0){ myResult.bestTime = "--:--:--";}
+    console.log(myResult);
+    if (myResult.myTime === null) {
+      //Tstats page (world records)
+      stageRow.bestDriver.append(myResult.bestDriver);
+      stageRow.car.append(myResult.bestCar);
+    } else {
+      // User records page.
+      stageRow.myTime.append(myResult.myTime);
+      stageRow.myPlace.append(myResult.place);
+      stageRow.car.append(myResult.car);
+    }
+    stageRow.bestTime.append(myResult.bestTime); // Appending the insides of the 4th column to the cell.
+    //Increment the count of coompleted requests (for visuals).
+    progressBar.increment();
+  }
+});
 }
 
 // Changes the default "Records" and "Ranks" links to include class set as favourite. Used also to redraw the link after setting a new favourite class.
