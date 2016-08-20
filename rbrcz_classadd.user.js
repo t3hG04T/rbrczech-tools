@@ -2,7 +2,7 @@
 // @name			RBR Czech - Class Addendum
 // @namespace 		RBRCzechScripts
 // @author			Łukasz Demolin "Maggot"
-// @version 		0.7.3.2
+// @version 		0.8.0.0
 // @date         2016-08-20
 // @icon         https://dl.dropboxusercontent.com/u/10106549/e-rajdy/richard_burns_rally.ico
 // @description		Adds omitted class links on rbr.onlineracing.cz
