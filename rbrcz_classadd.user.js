@@ -317,6 +317,7 @@ function parseurl( name ){
   var regexS = "[\\?&]"+name+"=([^&#]*)";
   var regex = new RegExp( regexS );
   var results = regex.exec( document.URL );
+  console.log(results);
   if( results === null )
     return "";
   else{/*
@@ -457,6 +458,12 @@ function classifyStages(stagesToClassify){
 // Function searching for and adding missing stages.
 function addMissingStages(){
   var selectedStage;
+  var tableType = parseurl("type"); // Parsing url for "type".
+  if ( tableType === "3" || whereAmI == "urank" ) {
+    tableType = "ranks"; // "ranks" are on "tstats" with type 3 and uranks.
+  } else {
+    tableType = "records"; // otherwise: default to records.
+  }
   console.log("Adding missing stages...");
   var topnavBar = $(".topnav");
   $(topnavBar[0]).attr("width", "13%");
@@ -471,7 +478,7 @@ function addMissingStages(){
         console.log(selectedStage);
         resultsTable.append(createStage(selectedStage[stageName], selectedStage[stageID], linkBase, "row2")); // Adding the row with the missing stage info + links.
         progressBar.requests++;
-        getStageData(selectedStage[stageID]); // Filling with data. TODO: add a switch to turn off filling with data.
+        getStageData(selectedStage[stageID], tableType); // Filling with data. TODO: add a switch to turn off filling with data.
       } else {
         // console.log("Stage "+ selectedStage[stageName] +" already exists. Skipping!");
       }
@@ -572,8 +579,7 @@ function addGTLink(){
 
 // Function getting the missing data for a stage.
 // TODO: rewrite the function so that it returns the result instead of writing to global var.
-// TODO: Deal with the global rankings (not user's). -> different table layout.
-function getStageData( idToCheck ){
+function getStageData( idToCheck, tableType ){
   var myResult = {}; // Object with "my result", to be populated with data.
   var bestTime;
   var regexCar = /.*<br>\s*([^\n\r]*)/;
@@ -583,15 +589,22 @@ function getStageData( idToCheck ){
   var selectedClass = $("#classid").val(); // Read the value of currently selected class.
   var selectedState = $("#state").val(); // Read the value of currently selected country.
   if (selectedState === undefined) {selectedState = ""}; // If state is undefined - replace it with an empty string (for safety).
+  if (tableType == "records"){
+    var act = "stagerec";
+  } else { var act = "stagerank"; }
 
   GM_xmlhttpRequest ({
     method: "GET",
-    url: "http://rbr.onlineracing.cz/index.php?act=stagerec&stageid=" + idToCheck + "&classid=" + selectedClass + "&state=" + selectedState,
+    url: "http://rbr.onlineracing.cz/index.php?act="+ act + "&stageid=" + idToCheck + "&classid=" + selectedClass + "&state=" + selectedState,
     headers: {
       "User-Agent": "Mozilla/5.0",    // If not specified, navigator.userAgent will be used.
       "Accept": "text/xml"            // If not specified, browser defaults will be used.
     },
-    timeout: 5000,
+    timeout: 15000,
+    ontimeout: function(){
+      console.log("Request timed out! ID: " + idToCheck);
+      progressBar.increment(); // TODO: log errors/timeouts and display info in progressbar.
+    },
     onload: function(response) {
       var stageRow = {};
       // Finding the stagerow that we are processing.
@@ -648,9 +661,10 @@ function getStageData( idToCheck ){
     // If no best time set - fill the object with the "no time" text. The rest of the fields will just remain empty.
     if (myResult.bestTime.length === 0){ myResult.bestTime = "--:--:--";}
     console.log(myResult);
-    if (myResult.myTime === null) {
+    if (myResult.myTime === null || myResult.myTime === undefined) {
       //Tstats page (world records)
       stageRow.bestDriver.append(myResult.bestDriver);
+      stageRow.car.removeAttr("align");
       stageRow.car.append(myResult.bestCar);
     } else {
       // User records page.
