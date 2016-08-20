@@ -2,8 +2,8 @@
 // @name			RBR Czech - Class Addendum
 // @namespace 		RBRCzechScripts
 // @author			Łukasz Demolin "Maggot"
-// @version 		0.7.3.1
-// @date         2016-08-04
+// @version 		0.7.3.2
+// @date         2016-08-20
 // @icon         https://dl.dropboxusercontent.com/u/10106549/e-rajdy/richard_burns_rally.ico
 // @description		Adds omitted class links on rbr.onlineracing.cz
 // @description		Also adds missing tracks on the "Ranks" and "Record" pages everywhere. Added dropdown-menu with stage select on stagerec/stagerank pages.
@@ -299,6 +299,17 @@ var isStageOnThePage = [];
 
 // Reading the favourite class from local storage (if doesn't exist - 0 to know it's not there).
 var favClass = GM_getValue("favClass", 0);
+// Creating a progressbar object to hold information about it.
+var progressBar = { requests: 0, completed: 0, location: "", increment: function(){
+  this.completed ++;
+  var bar = $(this.location).children("span");
+  var percComplete = (this.completed/this.requests)*100;
+  if (this.requests > 0) {$(bar).css("width",percComplete + "%"); $(bar).html("Loading: " + Math.round(percComplete) + "% &nbsp;");}
+  if (this.completed === this.requests) {
+    $(bar).addClass("meterdone");
+    $(bar).html("All data loaded! &nbsp;&nbsp;");
+  }
+}};
 
 // Parsing the URL looking for a certain parameter (returning a string with value, or empty string if no value found).
 function parseurl( name ){
@@ -447,6 +458,11 @@ function classifyStages(stagesToClassify){
 function addMissingStages(){
   var selectedStage;
   console.log("Adding missing stages...");
+  var topnavBar = $(".topnav");
+  $(topnavBar[0]).attr("width", "13%");
+  $(topnavBar[2]).attr("width","13%");
+  $(topnavBar[0]).html('<div class="meter"><span style="width: 1%"></span></div>');
+  progressBar.location = $(".meter");
   for (var index = 0; index < stagesDict.length; index++){
     selectedStage = stagesDict[index];
     if (selectedStage[stageCountry] !== "Test"){ // Not adding the "test" stages.
@@ -454,6 +470,7 @@ function addMissingStages(){
         console.log("Found missing stage. Adding info.");
         console.log(selectedStage);
         resultsTable.append(createStage(selectedStage[stageName], selectedStage[stageID], linkBase, "row2")); // Adding the row with the missing stage info + links.
+        progressBar.requests++;
         getStageData(selectedStage[stageID]); // Filling with data. TODO: add a switch to turn off filling with data.
       } else {
         // console.log("Stage "+ selectedStage[stageName] +" already exists. Skipping!");
@@ -624,6 +641,7 @@ function getStageData( idToCheck ){ // TODO: Deal with the global rankings (not 
             if (myResult.BestTime.length === 0){ myResult.BestTime = "--:--:--"} // If no best time set - fill the object with the "no time" text.
             console.log(myResult);
             bestTimeCell.append(myResult.BestTime); // Appending the insides of the 4th column to the cell.
+            progressBar.increment(); //Increment the count of coompleted requests.
         },
     });
 }
@@ -846,6 +864,9 @@ function addStyling(){
         " tr.header>th { cursor:pointer; background-color: #840000; background-image: none !important; color: white; font-weight: normal;}" +
         " tr.header:hover { transition: all 120ms ease; opacity: .85;}" +
         " .row2:hover, .row3:hover { background-color: #404040; transition: all 120ms ease; opacity: .85;}" +
+        " .meter { color: black; text-align: center; height: 15px; position: relative;background: #555; -moz-border-radius: 6px; -webkit-border-radius: 6px; border-radius: 6px; padding: 3px; margin: 0px 5px}" +
+        " .meter > span { background-color: #f2b63c; border: 1px solid #f0ad24 #eba310 #c5880d; display: block; text-align: right; font-size: 11px; line-height: 15px; height: 100%; border-top-right-radius: 4px; border-bottom-right-radius: 4px; border-top-left-radius: 4px; border-bottom-left-radius: 4px; position: relative; overflow: hidden;}" +
+        " span.meterdone { background-color: #85c440; border: 1px solid #78b337 #6ba031 #568128;}"
         "";
 
 
