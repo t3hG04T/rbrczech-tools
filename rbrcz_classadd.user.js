@@ -2,7 +2,7 @@
 // @name			RBR Czech - Class Addendum
 // @namespace 		RBRCzechScripts
 // @author			Łukasz Demolin "Maggot"
-// @version 		0.8.0.1
+// @version 		0.8.0.2
 // @date         2016-08-20
 // @icon         https://dl.dropboxusercontent.com/u/10106549/e-rajdy/richard_burns_rally.ico
 // @description		Adds omitted class links on rbr.onlineracing.cz
@@ -244,6 +244,7 @@ var stagesDict = [[10,"Kaihuavaara","Finland","Snow","6.1 km","Yes","Open"],
                   [599,"Northumbria","Great Britain","Gravel","9 km","Yes","Open"],
                   [601,"Northumbria Tarmac","Great Britain","Tarmac","9 km","Yes","Open"],
                   [700,"Passo Valle","Italy","Tarmac","5.8 km","Yes","Open"],
+                  [701, "Passo Valle Reverse", "Itally", "Tarmac", "5.8 km", "Yes", "Open"],
                   [711,"Akagi Mountain","Japan","Tarmac","3.5 km","Yes","Open"],
                   [712,"Akagi Mountain II","Japan","Tarmac","3.5 km","Yes","Open"],
                   [777,"Pian del Colle","Italy","Tarmac","8.3 km","Yes","Open"],
