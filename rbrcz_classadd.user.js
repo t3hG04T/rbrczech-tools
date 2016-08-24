@@ -3,7 +3,7 @@
 // @namespace 		RBRCzechScripts
 // @author			Łukasz Demolin "Maggot"
 // @version 		0.8.0.3
-// @date         2016-08-20
+// @date         2016-08-24
 // @icon         https://dl.dropboxusercontent.com/u/10106549/e-rajdy/richard_burns_rally.ico
 // @description		Adds omitted class links on rbr.onlineracing.cz
 // @description		Also adds missing tracks on the "Ranks" and "Record" pages everywhere. Added dropdown-menu with stage select on stagerec/stagerank pages.
