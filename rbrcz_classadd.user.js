@@ -2,8 +2,8 @@
 // @name			RBR Czech - Class Addendum
 // @namespace 		RBRCzechScripts
 // @author			Łukasz Demolin "Maggot"
-// @version 		0.8.0.3
-// @date         2016-08-24
+// @version 		0.8.0.4
+// @date         2016-09-22
 // @icon         https://dl.dropboxusercontent.com/u/10106549/e-rajdy/richard_burns_rally.ico
 // @description		Adds omitted class links on rbr.onlineracing.cz
 // @description		Also adds missing tracks on the "Ranks" and "Record" pages everywhere. Added dropdown-menu with stage select on stagerec/stagerank pages.
@@ -70,6 +70,7 @@ var countriesDict = { "Finland" : "FI",
                      "Switzerland" : "CH",
                      "Swiss" : "CH",
                      "Ukraine" : "UA",
+                     "Portugal" : "PT",
                      "Test":"Test"
 };
 
@@ -92,6 +93,7 @@ var countriesSortOrder = [["FI", "Finland", "http://rbr.onlineracing.cz/images/f
                           ["SI", "Slovenia", "http://rbr.onlineracing.cz/images/flgs/SI.gif"],
                           ["UA", "Ukraine", "http://rbr.onlineracing.cz/images/flgs/UA.gif"],
                           ["ES", "Spain", "http://rbr.onlineracing.cz/images/flgs/ES.gif"],
+                          ["PT", "Portugal", "http://rbr.onlineracing.cz/images/flgs/PT.gif"],
                           ["IT", "Italy", "http://rbr.onlineracing.cz/images/flgs/IT.gif"],
                           ["CH", "Switzerland", "http://rbr.onlineracing.cz/images/flgs/CH.gif"],
                           ["AR", "Argentina", "http://rbr.onlineracing.cz/images/flgs/AR.gif"],
@@ -246,6 +248,7 @@ var stagesDict = [[10,"Kaihuavaara","Finland","Snow","6.1 km","Yes","Open"],
                   [601,"Northumbria Tarmac","Great Britain","Tarmac","9 km","Yes","Open"],
                   [700,"Passo Valle","Italy","Tarmac","5.8 km","Yes","Open"],
                   [701, "Passo Valle Reverse", "Itally", "Tarmac", "5.8 km", "Yes", "Open"],
+                  [709,	"Travanca do Monte",	"Portugal",	"Gravel",	"3 km",	"Yes",	"Restricted"],
                   [711,"Akagi Mountain","Japan","Tarmac","3.5 km","Yes","Open"],
                   [712,"Akagi Mountain II","Japan","Tarmac","3.5 km","Yes","Open"],
                   [777,"Pian del Colle","Italy","Tarmac","8.3 km","Yes","Open"],
